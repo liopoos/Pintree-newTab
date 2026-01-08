@@ -14,9 +14,6 @@ import Sortable from 'sortablejs';
 //导入资源
 import empty_svg from '/images/empty.svg';
 import default_svg from '/images/default-icon.svg';
-import google_svg from '~/assets/svg/google.svg';
-import bing_svg from '~/assets/svg/bing.svg';
-import baidu_svg from '~/assets/svg/baidu.svg';
 
 //全局变量
 let firstLayer = null;//书签集合
@@ -152,44 +149,6 @@ function searchBookmarks(query, currentTab) {
             renderBookmarks(results, [{ id: "0", title: browser.i18n.getMessage("searchResults"), children: results }]);
         })
         .catch(error => console.error(`${browser.i18n.getMessage("errorSearchBookmark")}:`, error));
-}
-
-// 搜索Web
-function searchWeb(query, currentTab) {
-    var encodedStr = encodeURIComponent(query);
-    switch (currentTab) {
-        case "Google":
-            window.open(`https://www.google.com/search?q=${encodedStr}`, '_blank');
-            return;
-        case "Baidu":
-            window.open(`https://www.baidu.com/s?wd=${encodedStr}&ie=utf-8`, '_blank');
-            return;
-        case "Bing":
-            window.open(`https://cn.bing.com/search?q=${encodedStr}`, '_blank');
-            return;
-        default:
-            break;
-
-    }
-};
-
-//搜索 AI
-function searchAI(query, currentTab) {
-    var encodedStr = encodeURIComponent(query);
-    switch (currentTab) {
-        case "ChatGPT":
-            window.open(`https://chatgpt.com/?q=${encodedStr}`, '_blank');
-            return;
-        case "Perplexity":
-            window.open(`https://www.perplexity.ai/search/new?q=${encodedStr}&ie=utf-8`, '_blank');
-            return;
-        case "Secret_Tower":
-            window.open(`https://metaso.cn?q=${encodedStr}`, '_blank');
-            return;
-        default:
-            break;
-
-    }
 }
 
 // 创建书签卡元素
@@ -576,8 +535,10 @@ function applyLightTheme() {
 function toggleTheme() {
     if (document.documentElement.classList.contains('dark')) {
         applyLightTheme();
+        browser.storage.sync.set({ colorTheme: 'light' });
     } else {
         applyDarkTheme();
+        browser.storage.sync.set({ colorTheme: 'dark' });
     }
 }
 
@@ -690,9 +651,6 @@ function i18n() {
     });
     //搜索
     searchInput.setAttribute("placeholder", browser.i18n.getMessage("search"));
-    bookmark_i18n.textContent = browser.i18n.getMessage("bookmark");
-    web_search_i18n.textContent = browser.i18n.getMessage("web_search");
-    ai_search_i18n.textContent = browser.i18n.getMessage("ai_search");
     //设置
     set_i18n.textContent = browser.i18n.getMessage("set");
     setContextMenu_i18n.textContent = browser.i18n.getMessage("setContextMenu");
@@ -1396,40 +1354,95 @@ function Initialize() {
     //编辑书签的初始化
     BookmarkEditInitialize();
 
+    // 搜索范围状态管理
+    let currentSearchScope = "All_bookmarks";
+
+    // 更新搜索范围按钮状态
+    function updateSearchScopeButtons(scope) {
+        currentSearchScope = scope === "all" ? "All_bookmarks" : "Current_bookmark";
+        
+        // 桌面端按钮
+        const allBtn = document.getElementById('searchScopeAll');
+        const currentBtn = document.getElementById('searchScopeCurrent');
+        
+        if (scope === "all") {
+            allBtn?.classList.add('bg-gray-900', 'text-white', 'dark:bg-teal-500', 'dark:text-gray-900');
+            allBtn?.classList.remove('text-gray-600', 'hover:bg-gray-100', 'dark:text-gray-400', 'dark:hover:bg-gray-800');
+            currentBtn?.classList.remove('bg-gray-900', 'text-white', 'dark:bg-teal-500', 'dark:text-gray-900');
+            currentBtn?.classList.add('text-gray-600', 'hover:bg-gray-100', 'dark:text-gray-400', 'dark:hover:bg-gray-800');
+        } else {
+            currentBtn?.classList.add('bg-gray-900', 'text-white', 'dark:bg-teal-500', 'dark:text-gray-900');
+            currentBtn?.classList.remove('text-gray-600', 'hover:bg-gray-100', 'dark:text-gray-400', 'dark:hover:bg-gray-800');
+            allBtn?.classList.remove('bg-gray-900', 'text-white', 'dark:bg-teal-500', 'dark:text-gray-900');
+            allBtn?.classList.add('text-gray-600', 'hover:bg-gray-100', 'dark:text-gray-400', 'dark:hover:bg-gray-800');
+        }
+        
+        // 移动端按钮
+        const mobileAllBtn = document.getElementById('mobileSearchScopeAll');
+        const mobileCurrentBtn = document.getElementById('mobileSearchScopeCurrent');
+        
+        if (scope === "all") {
+            mobileAllBtn?.classList.add('bg-gray-900', 'text-white', 'dark:bg-teal-500', 'dark:text-gray-900');
+            mobileAllBtn?.classList.remove('text-gray-600', 'bg-gray-100', 'dark:text-gray-400', 'dark:bg-gray-800');
+            mobileCurrentBtn?.classList.remove('bg-gray-900', 'text-white', 'dark:bg-teal-500', 'dark:text-gray-900');
+            mobileCurrentBtn?.classList.add('text-gray-600', 'bg-gray-100', 'dark:text-gray-400', 'dark:bg-gray-800');
+        } else {
+            mobileCurrentBtn?.classList.add('bg-gray-900', 'text-white', 'dark:bg-teal-500', 'dark:text-gray-900');
+            mobileCurrentBtn?.classList.remove('text-gray-600', 'bg-gray-100', 'dark:text-gray-400', 'dark:bg-gray-800');
+            mobileAllBtn?.classList.remove('bg-gray-900', 'text-white', 'dark:bg-teal-500', 'dark:text-gray-900');
+            mobileAllBtn?.classList.add('text-gray-600', 'bg-gray-100', 'dark:text-gray-400', 'dark:bg-gray-800');
+        }
+    }
+
+    // 桌面端搜索范围按钮
+    document.getElementById('searchScopeAll')?.addEventListener('click', function () {
+        updateSearchScopeButtons('all');
+    });
+
+    document.getElementById('searchScopeCurrent')?.addEventListener('click', function () {
+        updateSearchScopeButtons('current');
+    });
+
+    // 移动端搜索范围按钮
+    document.getElementById('mobileSearchScopeAll')?.addEventListener('click', function () {
+        updateSearchScopeButtons('all');
+    });
+
+    document.getElementById('mobileSearchScopeCurrent')?.addEventListener('click', function () {
+        updateSearchScopeButtons('current');
+    });
+
     // 按Enter时的搜索功能
     document.getElementById('searchInput')?.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') {
-            browser.storage.sync.get('SearchTab', (data) => {
-                if (data.SearchTab) {
-                    Search(data.SearchTab);
-                }
-            });
+            Search(currentSearchScope);
         }
     });
 
     // 按钮点击的搜索功能
     document.getElementById('searchButton')?.addEventListener('click', function () {
-        browser.storage.sync.get('SearchTab', (data) => {
-            if (data.SearchTab) {
-                Search(data.SearchTab);
-            }
-        });
+        Search(currentSearchScope);
     });
 
-    //关闭侧导航栏
-    SideNavigationToggle.onclick = () => {
-        browser.storage.sync.get('SideNavigationToggle', (data) => {
-            if (data.SideNavigationToggle) {
-                browser.storage.sync.set({ SideNavigationToggle: false });
-                SideNavigation.classList.add('lg:block');
-                document.getElementById('main-content').classList.remove("mx-20");
-            } else {
-                browser.storage.sync.set({ SideNavigationToggle: true });
-                SideNavigation.classList.remove('lg:block');
-                document.getElementById('main-content').classList.add("mx-20");
-            }
-        });
-    }
+    // 移动端搜索功能
+    document.getElementById('mobileSearchToggle')?.addEventListener('click', function () {
+        const panel = document.getElementById('mobileSearchPanel');
+        if (panel) {
+            panel.classList.toggle('hidden');
+        }
+    });
+
+    document.getElementById('mobileSearchInput')?.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            const query = event.target.value.trim();
+            searchBookmarks(query, currentSearchScope);
+        }
+    });
+
+    document.getElementById('mobileSearchButton')?.addEventListener('click', function () {
+        const query = document.getElementById('mobileSearchInput').value.trim();
+        searchBookmarks(query, currentSearchScope);
+    });
 
     // Event listener for theme toggle button
     const themeToggleButton = document.getElementById('themeToggleButton');
@@ -1444,13 +1457,26 @@ function Initialize() {
         }
     }
 
-    // Detect initial color theme
-    const prefersDarkTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    applyColorTheme(prefersDarkTheme ? 'dark' : 'light');
+    // 初始化颜色主题：优先使用用户保存的选择，否则使用系统主题
+    browser.storage.sync.get('colorTheme', (data) => {
+        if (data.colorTheme) {
+            // 使用用户保存的主题
+            applyColorTheme(data.colorTheme);
+        } else {
+            // 使用系统主题
+            const prefersDarkTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            applyColorTheme(prefersDarkTheme ? 'dark' : 'light');
+        }
+    });
 
-    // Listen for changes in the color theme
+    // Listen for changes in the color theme (only when user hasn't set a preference)
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
-        applyColorTheme(event.matches ? 'dark' : 'light');
+        browser.storage.sync.get('colorTheme', (data) => {
+            if (!data.colorTheme) {
+                // 只有当用户没有手动设置主题时，才跟随系统主题变化
+                applyColorTheme(event.matches ? 'dark' : 'light');
+            }
+        });
     });
 
     // Open mobile menu
@@ -1467,119 +1493,6 @@ function Initialize() {
         SetUp_modalButton.onclick = () => {
             SetUp_modal.showModal();
         };
-    })();
-
-    //搜索状态
-    (() => {
-        let tab_ = null;
-        let currentTab_ = null;
-        // 初始数据
-        const tabData = {
-            bookmarks: ["All_bookmarks", "Current_bookmark"],
-            "web-search": ["Google", "Baidu", "Bing"],
-            "ai-search": ["ChatGPT", "Perplexity", "Secret_Tower"],
-        };
-
-        // DOM 元素
-        const tabs = document.querySelectorAll(".tab-btn");
-        const collections = document.getElementById("collections");
-
-        // 切换 Tab 时更新集合按钮
-        function updateCollections(tabKey, currentTab = null) {
-            collections.innerHTML = ""; // 清空集合按钮
-            let icons = {
-                "Google": google_svg,
-                "Baidu": baidu_svg,
-                "Bing": bing_svg,
-            }
-            tabData[tabKey].forEach((label, index) => {
-                const btn = document.createElement("button");
-
-                if (icons[label]) {
-                    const svg = document.createElement("img");
-                    svg.src = icons[label];
-                    svg.classList.add("w-4", "h-4", "mr-2");
-                    btn.appendChild(svg);
-                }
-
-                const span = document.createElement("span");
-                span.textContent = browser.i18n.getMessage(label.toLowerCase());
-                btn.appendChild(span);
-                btn.dataset.tab = label;
-                btn.className = `collection-btn flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-50 hover:bg-gray-200 dark:pintree-bg-gray-900 dark:text-gray-300 dark:hover:pintree-bg-gray-800 dark:border dark:border-gray-700 rounded-full`;
-                btn.onclick = (e) => {
-                    document.querySelectorAll(".collection-btn").forEach((btn) => {
-                        btn.classList.add("hover:bg-gray-200", "bg-gray-50");
-                        btn.classList.remove("bg-gray-200", "dark:pintree-bg-gray-800");
-                    });
-                    btn.classList.add("bg-gray-200", "dark:pintree-bg-gray-800")
-                    btn.classList.remove("bg-gray-50", "hover:bg-gray-200");
-
-                    currentTab_ = btn.dataset.tab;
-
-                    //保存当前选中的Tab
-                    browser.storage.sync.set({
-                        SearchTab: {
-                            tab: tab_,
-                            currentTab: currentTab_
-                        }
-                    });
-                }
-                //判断是否选中
-                if ((currentTab === null && index === 0) || (currentTab === btn.dataset.tab)) {
-                    btn.click();
-                }
-                collections.appendChild(btn);
-            });
-        }
-
-        // 添加事件监听器
-        tabs.forEach((tab) => {
-            tab.addEventListener("click", () => {
-                // 移除所有 Tab 的选中样式
-                tabs.forEach((t) => {
-                    t.classList.remove("bg-black", "text-white")
-                    t.classList.add("hover:text-black")
-                });
-
-                // 为当前点击的 Tab 添加选中样式
-                tab.classList.add("bg-black", "text-white");
-                tab.classList.remove("hover:text-black")
-
-                tab_ = tab.dataset.tab;
-
-                browser.storage.sync.get('SearchTab', (data) => {
-                    if (data.SearchTab) {
-                        if (data.SearchTab.tab === tab_) {
-                            currentTab_ = data.SearchTab.currentTab;
-                        } else {
-                            currentTab_ = null;
-                        }
-                    } else {
-                        currentTab_ = null;
-                    }
-                    // 更新集合按钮
-                    updateCollections(tab_, currentTab_);
-                });
-            });
-        });
-
-        browser.storage.sync.get('SearchTab', (data) => {
-            if (data.SearchTab) {
-                let Isdefault = true;
-                tabs.forEach((tab) => {
-                    if (tab.dataset.tab === data.SearchTab.tab) {
-                        Isdefault = false;
-                        tab.click();
-                        currentTab_ = data.SearchTab.currentTab;
-                        updateCollections(tab_, currentTab_);
-                    }
-                });
-                if (Isdefault) tabs[0]?.click();
-            } else {
-                tabs[0]?.click();
-            }
-        });
     })();
 
     //关闭鼠标右键菜单
@@ -1615,19 +1528,6 @@ function Initialize() {
                 });
             }
         };
-    })();
-
-    //设置侧导航栏隐藏状态
-    (() => {
-        browser.storage.sync.get('SideNavigationToggle', (data) => {
-            if (!data.SideNavigationToggle) {
-                SideNavigation.classList.add('lg:block');
-                document.getElementById('main-content').classList.remove("mx-20");
-            } else {
-                SideNavigation.classList.remove('lg:block');
-                document.getElementById('main-content').classList.add("mx-20");
-            }
-        });
     })();
 
     //更新日期
@@ -1671,21 +1571,9 @@ async function DelIconsCache() {
 }
 
 //搜索
-function Search(data) {
-    const query = document.getElementById('searchInput').value;
-    switch (data.tab) {
-        case "bookmarks":
-            searchBookmarks(query, data.currentTab);
-            break;
-        case "web-search":
-            searchWeb(query, data.currentTab);
-            break;
-        case "ai-search":
-            searchAI(query, data.currentTab);
-            break;
-        default:
-            break;
-    }
+function Search(scope = "All_bookmarks") {
+    const query = document.getElementById('searchInput').value.trim();
+    searchBookmarks(query, scope);
 }
 
 //书签拖拽
