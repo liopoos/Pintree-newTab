@@ -1432,6 +1432,29 @@ function Initialize() {
         }
     });
 
+    // 移动端侧边栏功能
+    const sidebar = document.getElementById('SideNavigation');
+    const sidebarOverlay = document.createElement('div');
+    sidebarOverlay.id = 'sidebarOverlay';
+    sidebarOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden';
+    document.body.appendChild(sidebarOverlay);
+
+    function openSidebar() {
+        sidebar?.classList.remove('-translate-x-full');
+        sidebarOverlay?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+        sidebar?.classList.add('-translate-x-full');
+        sidebarOverlay?.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    document.getElementById('mobileSidebarToggle')?.addEventListener('click', openSidebar);
+    document.getElementById('mobileSidebarClose')?.addEventListener('click', closeSidebar);
+    sidebarOverlay.addEventListener('click', closeSidebar);
+
     document.getElementById('mobileSearchInput')?.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') {
             const query = event.target.value.trim();

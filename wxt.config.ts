@@ -19,6 +19,9 @@ export default defineConfig({
     action: {
       default_title: '__MSG_appTitle__',
     },
+    chrome_url_overrides: {
+      newtab: '/page.html',
+    },
     web_accessible_resources: [
       {
         resources: ["_favicon/*"],
